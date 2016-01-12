@@ -280,8 +280,8 @@ public class DefaultHttpDownloader extends HttpDownloader {
      */
     public InputSupplier<InputStream> newInputSupplier(URI uri, String requestMethod, String login, String password, @Nullable Integer connectTimeoutMillis,
       @Nullable Integer readTimeoutMillis) {
-      int read = readTimeoutMillis != null ? readTimeoutMillis : TIMEOUT_MILLISECONDS;
-      int connect = connectTimeoutMillis != null ? connectTimeoutMillis : TIMEOUT_MILLISECONDS;
+      int read = (readTimeoutMillis != null ? readTimeoutMillis : TIMEOUT_MILLISECONDS) * 3;
+      int connect = (connectTimeoutMillis != null ? connectTimeoutMillis : TIMEOUT_MILLISECONDS) * 3;
       return new HttpInputSupplier(uri, requestMethod, userAgent, login, password, connect, read);
     }
 
