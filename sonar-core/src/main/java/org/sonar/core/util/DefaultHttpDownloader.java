@@ -54,6 +54,7 @@ import org.sonar.api.config.Settings;
 import org.sonar.api.platform.Server;
 import org.sonar.api.utils.HttpDownloader;
 import org.sonar.api.utils.SonarException;
+import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
 /**
@@ -280,8 +281,8 @@ public class DefaultHttpDownloader extends HttpDownloader {
      */
     public InputSupplier<InputStream> newInputSupplier(URI uri, String requestMethod, String login, String password, @Nullable Integer connectTimeoutMillis,
       @Nullable Integer readTimeoutMillis) {
-      int read = (readTimeoutMillis != null ? readTimeoutMillis : TIMEOUT_MILLISECONDS) * 3;
-      int connect = (connectTimeoutMillis != null ? connectTimeoutMillis : TIMEOUT_MILLISECONDS) * 3;
+      int read = (readTimeoutMillis != null ? readTimeoutMillis : TIMEOUT_MILLISECONDS) * 5;
+      int connect = (connectTimeoutMillis != null ? connectTimeoutMillis : TIMEOUT_MILLISECONDS) * 5;
       return new HttpInputSupplier(uri, requestMethod, userAgent, login, password, connect, read);
     }
 
@@ -310,6 +311,25 @@ public class DefaultHttpDownloader extends HttpDownloader {
        */
       @Override
       public InputStream getInput() throws IOException {
+        int tryCount = 1;
+        while (true) {
+          try {
+            return getInputInternal();
+          } catch(Exception e) {
+            String msg = "Error on try #" + tryCount + " downloading: " + uri + " (" + getProxySynthesis(uri, ProxySelector.getDefault()) + ") : " + e.getMessage();
+            Logger logger = Loggers.get(getClass());
+            if (tryCount < 5) {
+              logger.warn(msg);
+              tryCount++;
+            } else {
+              logger.error(msg);
+              throw e;
+            }
+          }
+        }
+      }
+
+      private InputStream getInputInternal() throws IOException {
         Loggers.get(getClass()).debug("Download: " + uri + " (" + getProxySynthesis(uri, ProxySelector.getDefault()) + ")");
         HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setRequestMethod(requestMethod);
